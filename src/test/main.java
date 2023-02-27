@@ -35,7 +35,7 @@ public class main {
         ).onceOrMore()
         .literally(".")
         .letter().atLeast(2).mustEnd().caseInsensitive()
-        .get("", false);
+        .get();
         System.out.println(query);
     }
 
