@@ -1,4 +1,7 @@
-# JRP
+# JRB
+JRB (Java Regex Builder) is a Java version of [SimpleRegex/SRL](https://github.com/SimpleRegex/SRL-PHP)
+
+
 ##### Email validation
 ```java
 String query = JRB.builder()
