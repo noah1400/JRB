@@ -4,7 +4,7 @@ import jrb.JRB;
 import jrb.Builder.Builder;
 import jrb.Exceptions.JRBException;
 
-public class main {
+public class Main {
     
     public static void main(String[] args) throws JRBException {
         String query = JRB.builder()
