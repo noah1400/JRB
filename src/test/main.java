@@ -1,6 +1,5 @@
 package test;
 
-import jrb.Closure;
 import jrb.JRB;
 import jrb.Builder.Builder;
 import jrb.Exceptions.JRBException;
@@ -11,26 +10,20 @@ public class main {
         String query = JRB.builder()
         .startsWith()
         .anyOf(
-            new Closure() {
-                @Override
-                public void execute(Builder builder) throws JRBException {
-                    builder
+            (Builder builder) -> {
+                builder
                     .digit()
                     .letter()
                     .oneOf("._%+-");
-                }
             }
         ).onceOrMore()
         .literally("@")
         .anyOf(
-            new Closure() {
-                @Override
-                public void execute(Builder builder) throws JRBException {
-                    builder
-                    .digit()
-                    .letter()
-                    .oneOf(".-");
-                }
+            (Builder builder) -> {
+                builder
+                .digit()
+                .letter()
+                .oneOf(".-");
             }
         ).onceOrMore()
         .literally(".")

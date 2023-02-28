@@ -3,8 +3,8 @@ package jrb.Builder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
-import jrb.Closure;
 import jrb.Exceptions.BuilderException;
 import jrb.Exceptions.ImplementationException;
 import jrb.Exceptions.JRBException;
@@ -85,7 +85,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder oneOf(String chars) throws JRBException {
+    public Builder oneOf(String chars) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, "OneOf");
 
         chars = this.escape(chars);
@@ -99,7 +99,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder notOneOf(String chars) throws JRBException {
+    public Builder notOneOf(String chars) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         chars = this.escape(chars);
@@ -113,7 +113,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder literally(String chars) throws JRBException {
+    public Builder literally(String chars) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("(?:" + this.escape(chars) + ")");
@@ -127,12 +127,12 @@ public class Builder implements TestMethodProvider {
      * @return
      * @throws JRBException
      */
-    public Builder digit(int min, int max) throws JRBException {
+    public Builder digit(int min, int max) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("[" + min + "-" + max + "]");
     }
-    public Builder digit() throws JRBException {
+    public Builder digit() {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("\\d");
@@ -145,12 +145,12 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder notDigit(int min, int max) throws JRBException {
+    public Builder notDigit(int min, int max) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("[^" + min + "-" + max + "]");
     }
-    public Builder notDigit() throws JRBException {
+    public Builder notDigit() {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("\\D");
@@ -163,12 +163,12 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder uppercaseLetter(String min, String max) throws JRBException {
+    public Builder uppercaseLetter(String min, String max) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("[" + min + "-" + max + "]");
     }
-    public Builder uppercaseLetter() throws JRBException {
+    public Builder uppercaseLetter() {
         return this.uppercaseLetter("A", "Z");
     }
 
@@ -179,12 +179,12 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder letter(String  min, String max) throws JRBException {
+    public Builder letter(String  min, String max) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("[" + min + "-" + max + "]");
     }
-    public Builder letter() throws JRBException {
+    public Builder letter() {
         return this.letter("a", "z");
     }
 
@@ -195,21 +195,21 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder notUppercaseLetter(String min, String max) throws JRBException {
+    public Builder notUppercaseLetter(String min, String max) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("[^" + min + "-" + max + "]");
     }
-    public Builder notUppercaseLetter() throws JRBException {
+    public Builder notUppercaseLetter() {
         return this.notUppercaseLetter("A", "Z");
     }
 
-    public Builder notLetter(String min, String max) throws JRBException {
+    public Builder notLetter(String min, String max) {
         this.validateAndAddMethodType(METHOD_TYPE_CHARACTER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.add("[^" + min + "-" + max + "]");
     }
-    public Builder notLetter() throws JRBException {
+    public Builder notLetter()  {
         return this.notLetter("a", "z");
     }
 
@@ -224,7 +224,17 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder anyOf(Object conditions) throws JRBException {
+    public Builder anyOf(String conditions) {
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new EitherOf(), conditions);
+    }
+    public Builder anyOf(Builder conditions) {
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new EitherOf(), conditions);
+    }
+    public Builder anyOf(Consumer<Builder> conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.addClosure(new EitherOf(), conditions);
@@ -236,7 +246,17 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder group(Object conditions) throws JRBException {
+    public Builder group(String conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new NonCapture(), conditions);
+    }
+    public Builder group(Builder conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new NonCapture(), conditions);
+    }
+    public Builder group(Consumer<Builder> conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.addClosure(new NonCapture(), conditions);
@@ -249,7 +269,17 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder and(Object conditions) throws JRBException {
+    public Builder and(String conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new Builder(), conditions);
+    }
+    public Builder and(Builder conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new Builder(), conditions);
+    }
+    public Builder and(Consumer<Builder> conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.addClosure(new Builder(), conditions);
@@ -262,7 +292,25 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder ifAlreadyHad(Object conditions) throws JRBException {
+    public Builder ifAlreadyHad(String conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        String condition = this.revertLast();
+
+        this.addClosure(new PositiveLookbehind(), conditions);
+
+        return this.add(condition);
+    }
+    public Builder ifAlreadyHad(Builder conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        String condition = this.revertLast();
+
+        this.addClosure(new PositiveLookbehind(), conditions);
+
+        return this.add(condition);
+    }
+    public Builder ifAlreadyHad(Consumer<Builder> conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         String condition = this.revertLast();
@@ -279,7 +327,25 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder ifNotAlreadyHad(Object conditions) throws JRBException {
+    public Builder ifNotAlreadyHad(String conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        String condition = this.revertLast();
+
+        this.addClosure(new NegativeLookbehind(), conditions);
+
+        return this.add(condition);
+    }
+    public Builder ifNotAlreadyHad(Builder conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        String condition = this.revertLast();
+
+        this.addClosure(new NegativeLookbehind(), conditions);
+
+        return this.add(condition);
+    }
+    public Builder ifNotAlreadyHad(Consumer<Builder> conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         String condition = this.revertLast();
@@ -296,7 +362,17 @@ public class Builder implements TestMethodProvider {
      * @return
      * @throws JRBException
      */
-    public Builder ifFollowedBy(Object conditions) throws JRBException {
+    public Builder ifFollowedBy(String conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new PositiveLookahead(), conditions);
+    }
+    public Builder ifFollowedBy(Builder conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new PositiveLookahead(), conditions);
+    }
+    public Builder ifFollowedBy(Consumer<Builder> conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.addClosure(new PositiveLookahead(), conditions);
@@ -309,12 +385,21 @@ public class Builder implements TestMethodProvider {
      * @return
      * @throws JRBException
      */
-    public Builder ifNotFollowedBy(Object conditions) throws JRBException {
+    public Builder ifNotFollowedBy(String conditions){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.addClosure(new NegativeLookahead(), conditions);
     }
+    public Builder ifNotFollowedBy(Builder conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
+        return this.addClosure(new NegativeLookahead(), conditions);
+    }
+    public Builder ifNotFollowedBy(Consumer<Builder> conditions){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new NegativeLookahead(), conditions);
+    }
     /**
      * Create capture group for given conditions.
      * 
@@ -323,7 +408,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder capture(Object conditions, String name) throws JRBException {
+    public Builder capture(String conditions, String name){
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         Capture builder = new Capture();
@@ -334,7 +419,35 @@ public class Builder implements TestMethodProvider {
 
         return this.addClosure(builder, conditions);
     }
-    public Builder capture(Object conditions) throws JRBException {
+    public Builder capture(String conditions){
+        return this.capture(conditions, null);
+    }
+    public Builder capture(Builder conditions, String name){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        Capture builder = new Capture();
+
+        if (name != null) {
+            builder.setName(name);
+        }
+
+        return this.addClosure(builder, conditions);
+    }
+    public Builder capture(Builder conditions){
+        return this.capture(conditions, null);
+    }
+    public Builder capture(Consumer<Builder> conditions, String name){
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        Capture builder = new Capture();
+
+        if (name != null) {
+            builder.setName(name);
+        }
+
+        return this.addClosure(builder, conditions);
+    }
+    public Builder capture(Consumer<Builder> conditions){
         return this.capture(conditions, null);
     }
 
@@ -349,17 +462,23 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder optional(Object conditions) throws JRBException  {
+    public Builder optional(String conditions) {
         this.validateAndAddMethodType(METHOD_TYPE_QUANTIFIER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
-
-        if (conditions == null) {
-            return this.add("?");
-        }
 
         return this.addClosure(new Optional(), conditions);
     }
-    public Builder optional() throws JRBException  {
-        return this.optional(null);
+    public Builder optional(Builder conditions) {
+        this.validateAndAddMethodType(METHOD_TYPE_QUANTIFIER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new Optional(), conditions);
+    }
+    public Builder optional(Consumer<Builder> conditions) {
+        this.validateAndAddMethodType(METHOD_TYPE_QUANTIFIER, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new Optional(), conditions);
+    }
+    public Builder optional() {
+        return this.add("?");
     }
 
     /**
@@ -370,7 +489,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder between(int min, int max) throws JRBException {
+    public Builder between(int min, int max){
         this.validateAndAddMethodType(METHOD_TYPE_QUANTIFIER, METHOD_TYPE_CHARACTER | METHOD_TYPE_GROUP, null);
 
         return this.add(String.format("{%d,%d}", min, max));
@@ -383,7 +502,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder atLeast(int min) throws JRBException  {
+    public Builder atLeast(int min) {
         this.validateAndAddMethodType(METHOD_TYPE_QUANTIFIER, METHOD_TYPE_CHARACTER | METHOD_TYPE_GROUP, null);
 
         return this.add(String.format("{%d,}", min));
@@ -395,7 +514,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder once() throws JRBException {
+    public Builder once(){
         return this.exactly(1);
     }
 
@@ -405,7 +524,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder twice() throws JRBException {
+    public Builder twice(){
         return this.exactly(2);
     }
 
@@ -416,7 +535,7 @@ public class Builder implements TestMethodProvider {
      * @return Builder
      * @throws JRBException
      */
-    public Builder exactly(int times) throws JRBException {
+    public Builder exactly(int times){
         this.validateAndAddMethodType(METHOD_TYPE_QUANTIFIER, METHOD_TYPE_CHARACTER | METHOD_TYPE_GROUP, null);
 
         return this.add(String.format("{%d}", times));
@@ -460,7 +579,27 @@ public class Builder implements TestMethodProvider {
      * @return  Builder
      * @throws JRBException
      */
-    public Builder until(Object toCondition) throws JRBException {
+    public Builder until(String toCondition){
+        try{
+            this.lazy();
+        }catch(ImplementationException e){
+        }
+
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new Builder(), toCondition);
+    }
+    public Builder until(Builder toCondition){
+        try{
+            this.lazy();
+        }catch(ImplementationException e){
+        }
+
+        this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
+
+        return this.addClosure(new Builder(), toCondition);
+    }
+    public Builder until(Consumer<Builder> toCondition){
         try{
             this.lazy();
         }catch(ImplementationException e){
@@ -475,40 +614,40 @@ public class Builder implements TestMethodProvider {
      * METHODS
      */
 
-    public Builder startsWith() throws JRBException {
+    public Builder startsWith(){
         return this.addFromMapper("startsWith");
     }
-    public Builder mustEnd() throws JRBException {
+    public Builder mustEnd(){
         return this.addFromMapper("mustEnd");
     }
-    public Builder onceOrMore() throws JRBException {
+    public Builder onceOrMore(){
         return this.addFromMapper("onceOrMore");
     }
-    public Builder neverOrMore() throws JRBException {
+    public Builder neverOrMore(){
         return this.addFromMapper("neverOrMore");
     }
-    public Builder any() throws JRBException {
+    public Builder any(){
         return this.addFromMapper("any");
     }
-    public Builder tab() throws JRBException {
+    public Builder tab(){
         return this.addFromMapper("tab");
     }
-    public Builder newLine() throws JRBException {
+    public Builder newLine(){
         return this.addFromMapper("newLine");
     }
-    public Builder whitespace() throws JRBException {
+    public Builder whitespace(){
         return this.addFromMapper("whitespace");
     }
-    public Builder noWhitespace() throws JRBException {
+    public Builder noWhitespace(){
         return this.addFromMapper("noWhitespace");
     }
-    public Builder anyCharacter() throws JRBException {
+    public Builder anyCharacter(){
         return this.addFromMapper("anyCharacter");
     }
-    public Builder noCharacter() throws JRBException {
+    public Builder noCharacter(){
         return this.addFromMapper("noCharacter");
     }
-    public Builder backslash() throws JRBException {
+    public Builder backslash(){
         return this.addFromMapper("backslash");
     }
 
@@ -516,19 +655,19 @@ public class Builder implements TestMethodProvider {
      * MODIFIERS
      */
 
-    public Builder multiLine() throws JRBException {
+    public Builder multiLine(){
         return this.addUniqueModifier(this.modifierMapper.get("multiLine"));
     }
-    public Builder singleLine() throws JRBException {
+    public Builder singleLine(){
         return this.addUniqueModifier(this.modifierMapper.get("singleLine"));
     }
-    public Builder caseInsensitive() throws JRBException {
+    public Builder caseInsensitive(){
         return this.addUniqueModifier(this.modifierMapper.get("caseInsensitive"));
     }
-    public Builder unicode() throws JRBException {
+    public Builder unicode(){
         return this.addUniqueModifier(this.modifierMapper.get("unicode"));
     }
-    public Builder allLazy() throws JRBException {
+    public Builder allLazy(){
         return this.addUniqueModifier(this.modifierMapper.get("allLazy"));
     }
 
@@ -576,7 +715,7 @@ public class Builder implements TestMethodProvider {
      * @param string|null $methodName Optional. If not supplied, the calling method name will be used.
      * @throws ImplementationException
      */
-    protected void validateAndAddMethodType(int type, int allowed, String methodName) throws JRBException {
+    protected void validateAndAddMethodType(int type, int allowed, String methodName) {
         if ( (allowed & this.lastMethodType) != 0) {
             this.lastMethodType = type;
 
@@ -602,11 +741,16 @@ public class Builder implements TestMethodProvider {
                 break;
         }
 
-        throw new ImplementationException(String.format(
-            "Method `%s` is not allowed %s.",
-            methodName != null ? methodName : new Exception().getStackTrace()[1].getMethodName(),
-            humanText != null ? humanText : "here"
-        ));
+        try {
+            throw new ImplementationException(String.format(
+                "Method `%s` is not allowed %s.",
+                methodName != null ? methodName : new Exception().getStackTrace()[1].getMethodName(),
+                humanText != null ? humanText : "here"
+            ));
+        } catch (ImplementationException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
     }
 
@@ -617,10 +761,16 @@ public class Builder implements TestMethodProvider {
      * @throws BuilderException
      * @return Builder
      */
-    protected Builder addFromMapper(String name) throws JRBException {
+    protected Builder addFromMapper(String name){
 
         if (!SimpleMapper.mapper.containsKey(name)) {
-            throw new BuilderException("Unknown mapper.");
+            try {
+                throw new BuilderException("Unknown mapper.");
+            } catch (BuilderException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
 
         this.validateAndAddMethodType(
@@ -654,19 +804,23 @@ public class Builder implements TestMethodProvider {
      * @param Closure|Builder|string $conditions Either a closure, literal character string or another Builder instance.
      * @return Builder
      */
-    protected Builder addClosure(Builder builder, Object conditions) throws JRBException {
+    protected Builder addClosure(Builder builder, String conditions) {
+        builder.literally((String) conditions);
+        return this.add(builder.get("", false));
+    }
 
-        if (conditions instanceof String) {
-            // Assuming literal characters if conditions are of type string
-            builder.literally((String) conditions);
-        } else if (conditions instanceof Builder) {
+    protected Builder addClosure(Builder builder, Builder conditions) {
+        try {
             builder.raw(((Builder) conditions).get("", false));
-        } else if (conditions instanceof Closure) {
-            ((Closure) conditions).execute(builder);
-        } else {
-            throw new BuilderException("Unknown type of conditions.");
+        } catch (BuilderException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
+        return this.add(builder.get("", false));
+    }
 
+    protected Builder addClosure(Builder builder, Consumer<Builder> conditions) {
+        conditions.accept(builder);
         return this.add(builder.get("", false));
     }
 
