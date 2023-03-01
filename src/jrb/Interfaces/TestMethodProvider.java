@@ -1,6 +1,6 @@
 package jrb.Interfaces;
 
-public interface TestMethodProvider {
+public abstract class TestMethodProvider {
     
     /**
      * Build and return the resulting regular expression. This will apply the given delimiter and all modifiers.
@@ -19,25 +19,25 @@ public interface TestMethodProvider {
      * @param offset
      * @return
      */
-    public default boolean isMatching(String string, int  flags, int offset) {
+    public boolean isMatching(String string, int  flags, int offset) {
         // TODO: Implement flags and offset
         boolean result = string.matches(this.get("/", false));
         return result;
     }
 
-    public default String replace(String string, String replacement, int flags, int offset) {
+    public String replace(String string, String replacement, int flags, int offset) {
         return string.replaceAll(this.get("/", false), replacement);
     }
 
-    public default String[] split(String string, int flags, int offset) {
+    public String[] split(String string, int flags, int offset) {
         return string.split(this.get("/", false));
     }
 
-    public default String[] split(String string, int limit, int flags, int offset) {
+    public String[] split(String string, int limit, int flags, int offset) {
         return string.split(this.get("/", false), limit);
     }
 
-    public default boolean isValid(String regEx) {
+    public boolean isValid(String regEx) {
         try {
             java.util.regex.Pattern.compile((regEx == null) ? this.get("/", false) : regEx);
             return true;

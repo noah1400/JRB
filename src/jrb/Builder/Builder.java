@@ -12,7 +12,7 @@ import jrb.Exceptions.SyntaxException;
 import jrb.Interfaces.TestMethodProvider;
 import jrb.Mapper.SimpleMapper;
 
-public class Builder implements TestMethodProvider {
+public class Builder extends TestMethodProvider {
     
     public final static int METHOD_TYPE_BEGIN = 0b00001;
     public final static int METHOD_TYPE_CHARACTER = 0b00010;
