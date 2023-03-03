@@ -8,12 +8,7 @@ JRB (Java Regex Builder) is a Java version of [SimpleRegex/SRL](https://github.c
 String query = JRB.builder()
         .startsWith()
         .anyOf(
-            (Builder builder) -> {
-                builder
-                    .digit()
-                    .letter()
-                    .oneOf("._%+-");
-            }
+            JRB.builder().digit().letter().oneOf("._%+-")
         ).onceOrMore()
         .literally("@")
         .anyOf(

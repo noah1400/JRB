@@ -914,7 +914,7 @@ public class Builder extends TestMethodProvider {
      * @return Builder
      */
     protected Builder addClosure(Builder builder, String conditions) {
-        builder.literally((String) conditions);
+        builder.literally(conditions);
         return this.add(builder.get("", false));
     }
 
