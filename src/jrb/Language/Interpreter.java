@@ -209,7 +209,6 @@ public class Interpreter extends TestMethodProvider {
                         Letter letter = new Letter(false);
                         letter.setSpan(a.raw, z.raw);
                         i += 4; // last token of the command
-                        System.out.println("i: " + i + " " + tokens.get(i).raw);
                         i = addQuantifier(letter, i, tokens); // returns the last token of the quantifier
                         commands.add(letter);
                         continue;
@@ -342,8 +341,6 @@ public class Interpreter extends TestMethodProvider {
         if (i >= tokens.size()) {
             return position;
         }
-
-        System.out.println("addQuantifier: " + tokens.get(i).raw);
 
         Token token = tokens.get(i);
         if (token.matches("exactly")) {
