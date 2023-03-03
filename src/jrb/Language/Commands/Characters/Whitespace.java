@@ -6,6 +6,9 @@ public class Whitespace extends Character{
 
     boolean no = false;
 
+    /*
+     * no = true means no whitespace
+     */
     public Whitespace(boolean no) {
         this.no = no;
         this.name = "whitespace";

@@ -24,6 +24,14 @@ public class Token {
         return this.type == type;
     }
 
+    public boolean character() {
+        return this.type == T_WORD && this.raw.length() == 1;
+    }
+
+    public boolean number() {
+        return this.type == T_NUMBER;
+    }
+
     private String typeString(int type) {
         switch (type) {
         case T_WORD:
