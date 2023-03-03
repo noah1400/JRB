@@ -10,7 +10,7 @@ public class Main {
         String query = JRB.builder()
         .startsWith()
         .anyOf(
-            JRB.builder().digit().letter().oneOf("._%+-").get()
+            JRB.builder().digit().letter().oneOf("._%+-")
         ).onceOrMore()
         .literally("@")
         .anyOf(
