@@ -137,6 +137,12 @@ public class Builder extends TestMethodProvider {
 
         return this.add("\\d");
     }
+    public Builder digit(Object o, Object o1) {
+        return this.digit((int)o, (int)o1);
+    }
+    public Builder digit(Object o) {
+        return this.digit();
+    }
 
     /**
      * Match any non-digit (in given span). If no span is given, match any non-digit.
@@ -171,6 +177,12 @@ public class Builder extends TestMethodProvider {
     public Builder uppercaseLetter() {
         return this.uppercaseLetter("A", "Z");
     }
+    public Builder uppercaseLetter(Object o, Object o1) {
+        return this.uppercaseLetter((String)o, (String)o1);
+    }
+    public Builder uppercaseLetter(Object o) {
+        return this.uppercaseLetter();
+    }
 
     /**
      * Match any lowercase letter (in given span). If no span is given, match any lowercase letter.
@@ -186,6 +198,12 @@ public class Builder extends TestMethodProvider {
     }
     public Builder letter() {
         return this.letter("a", "z");
+    }
+    public Builder letter(Object o, Object o1) {
+        return this.letter((String)o, (String)o1);
+    }
+    public Builder letter(Object o) {
+        return this.letter();
     }
 
     /**
@@ -238,6 +256,18 @@ public class Builder extends TestMethodProvider {
         this.validateAndAddMethodType(METHOD_TYPE_GROUP, METHOD_TYPES_ALLOWED_FOR_CHARACTERS, null);
 
         return this.addClosure(new EitherOf(), conditions);
+    }
+    @SuppressWarnings("unchecked")
+    public Builder anyOf(Object conditions) {
+        if (conditions instanceof String) {
+            return this.anyOf((String) conditions);
+        } else if (conditions instanceof Builder) {
+            return this.anyOf((Builder) conditions);
+        } else if (conditions instanceof Consumer) {
+            return this.anyOf((Consumer<Builder>) conditions);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -517,6 +547,9 @@ public class Builder extends TestMethodProvider {
     public Builder once(){
         return this.exactly(1);
     }
+    public Builder once(Object o){
+        return this.once();
+    }
 
     /**
      * Previous match must occur exactly twice.
@@ -526,6 +559,9 @@ public class Builder extends TestMethodProvider {
      */
     public Builder twice(){
         return this.exactly(2);
+    }
+    public Builder twice(Object o){
+        return this.twice();
     }
 
     /**
@@ -540,6 +576,9 @@ public class Builder extends TestMethodProvider {
 
         return this.add(String.format("{%d}", times));
     }
+    public Builder exactly(Object o) {
+        return this.exactly((int) o);
+    }
 
 
     /**
@@ -549,6 +588,9 @@ public class Builder extends TestMethodProvider {
      */
     public Builder lazy() throws ImplementationException {
         return this.firstMatch();
+    }
+    public Builder lazy(Object o) throws ImplementationException {
+        return this.lazy();
     }
 
     /**
@@ -570,6 +612,9 @@ public class Builder extends TestMethodProvider {
         }
 
         return this.add("?");
+    }
+    public Builder firstMatch(Object o) throws ImplementationException {
+        return this.firstMatch();
     }
 
     /**
@@ -609,6 +654,17 @@ public class Builder extends TestMethodProvider {
 
         return this.addClosure(new Builder(), toCondition);
     }
+    @SuppressWarnings("unchecked")
+    public Builder until(Object o) {
+        if (o instanceof String) {
+            return this.until((String) o);
+        } else if (o instanceof Builder) {
+            return this.until((Builder) o);
+        } else if (o instanceof Consumer) {
+            return this.until((Consumer<Builder>) o);
+        }
+        return null;
+    }
 
     /**
      * METHODS
@@ -617,38 +673,74 @@ public class Builder extends TestMethodProvider {
     public Builder startsWith(){
         return this.addFromMapper("startsWith");
     }
+    public Builder startsWith(Object obj){
+        return this.startsWith();
+    }
     public Builder mustEnd(){
         return this.addFromMapper("mustEnd");
+    }
+    public Builder mustEnd(Object obj){
+        return this.mustEnd();
     }
     public Builder onceOrMore(){
         return this.addFromMapper("onceOrMore");
     }
+    public Builder onceOrMore(Object obj){
+        return this.onceOrMore();
+    }
     public Builder neverOrMore(){
         return this.addFromMapper("neverOrMore");
+    }
+    public Builder neverOrMore(Object obj){
+        return this.neverOrMore();
     }
     public Builder any(){
         return this.addFromMapper("any");
     }
+    public Builder any(Object obj){
+        return this.any();
+    }
     public Builder tab(){
         return this.addFromMapper("tab");
+    }
+    public Builder tab(Object obj){
+        return this.tab();
     }
     public Builder newLine(){
         return this.addFromMapper("newLine");
     }
+    public Builder newLine(Object obj){
+        return this.newLine();
+    }
     public Builder whitespace(){
         return this.addFromMapper("whitespace");
+    }
+    public Builder whitespace(Object obj){
+        return this.whitespace();
     }
     public Builder noWhitespace(){
         return this.addFromMapper("noWhitespace");
     }
+    public Builder noWhitespace(Object obj){
+        return this.noWhitespace();
+    }
     public Builder anyCharacter(){
         return this.addFromMapper("anyCharacter");
+    }
+    public Builder anyCharacter(Object obj){
+        return this.anyCharacter();
     }
     public Builder noCharacter(){
         return this.addFromMapper("noCharacter");
     }
+    public Builder noCharacter(Object obj){
+        return this.noCharacter();
+    }
     public Builder backslash(){
         return this.addFromMapper("backslash");
+    }
+    public Builder backslash(Object obj){
+        return this.backslash();
     }
 
     /**
@@ -658,17 +750,32 @@ public class Builder extends TestMethodProvider {
     public Builder multiLine(){
         return this.addUniqueModifier(this.modifierMapper.get("multiLine"));
     }
+    public Builder multiLine(Object obj){
+        return this.multiLine();
+    }
     public Builder singleLine(){
         return this.addUniqueModifier(this.modifierMapper.get("singleLine"));
+    }
+    public Builder singleLine(Object obj){
+        return this.singleLine();
     }
     public Builder caseInsensitive(){
         return this.addUniqueModifier(this.modifierMapper.get("caseInsensitive"));
     }
+    public Builder caseInsensitive(Object obj){
+        return this.caseInsensitive();
+    }
     public Builder unicode(){
         return this.addUniqueModifier(this.modifierMapper.get("unicode"));
     }
+    public Builder unicode(Object obj){
+        return this.unicode();
+    }
     public Builder allLazy(){
         return this.addUniqueModifier(this.modifierMapper.get("allLazy"));
+    }
+    public Builder allLazy(Object obj){
+        return this.allLazy();
     }
 
 
@@ -682,6 +789,9 @@ public class Builder extends TestMethodProvider {
     */
     protected String escape(String string) {
         return string.replaceAll("([\\\\\\.\\[\\]\\(\\)\\{\\}\\+\\*\\?\\^\\$\\|\\-])", "\\\\$1");
+    }
+    protected String escape(Object o) {
+        return this.escape(o.toString());
     }
 
     /**
@@ -767,7 +877,6 @@ public class Builder extends TestMethodProvider {
             try {
                 throw new BuilderException("Unknown mapper.");
             } catch (BuilderException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
                 System.exit(1);
             }

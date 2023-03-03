@@ -1,5 +1,6 @@
 package jrb.Language.Helpers;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -25,7 +26,7 @@ public abstract class Method {
      */
     protected Map<String, Object> parameters = new HashMap<>();
 
-    private int[] executedCallbacks = new int[0];
+    private ArrayList<String> executedCallbacks = new ArrayList<>();
 
     public Method(String original, String methodName) {
         this.original = original;
@@ -42,7 +43,7 @@ public abstract class Method {
         // PHP: $response = $builder->{$this->methodName}(...$this->parameters);
         
         try {
-            Builder response = (Builder)builder.getClass().getMethod(this.methodName, Object[].class).invoke(builder, this.parameters.values());
+            Builder response = (Builder)builder.getClass().getMethod(this.methodName, Object.class).invoke(builder, this.parameters);
             // PHP:
             // foreach ($this->parameters as $k => $parameter) {
             //     if ($parameter instanceof Closure && !in_array($k, $this->executedCallbacks)) {
@@ -72,13 +73,8 @@ public abstract class Method {
                 this.parameters.put(entry.getKey(), ((Literally)entry.getValue()).getString());
             } else if (entry.getValue() instanceof Object[]) {
 
-                // PHP:
-                // $cb = function (Builder $query) use ($parameter, $k) {
-                //     $this->executedCallbacks[] = $k;
-                //     Interpreter::buildQuery($parameter, $query);
-                // };
                 Consumer<Builder> cb = (Consumer<Builder>)query -> {
-                    this.executedCallbacks = new int[]{Integer.parseInt(entry.getKey())};
+                    this.executedCallbacks.add(entry.getKey());
                     try {
                         Interpreter.buildQuery((Object[])entry.getValue(), query);
                     } catch (SyntaxException e) {

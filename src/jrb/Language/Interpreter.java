@@ -1,5 +1,9 @@
 package jrb.Language;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import jrb.Builder.Builder;
 import jrb.Builder.NonCapture;
 import jrb.Exceptions.InterpreterException;
@@ -52,7 +56,7 @@ public class Interpreter extends TestMethodProvider{
         Cache.add(this.rawQuery, this.builder);
     }
 
-    protected void resolve() throws InterpreterException {
+    protected void resolve() throws InterpreterException, SyntaxException {
         this.resolvedQuery = this.resolveQuery((new ParenthesesParser(this.rawQuery)).parse());
     }
 
@@ -61,27 +65,35 @@ public class Interpreter extends TestMethodProvider{
             if (query[i] instanceof String) {
                 query[i] = ((String)query[i]).replace(",", " ");
                 if (((String)query[i]).isEmpty()) {
-                    // PHP: array_splice($query, $i, 0);
-                    Object[] temp = new Object[query.length - 1];
-                    System.arraycopy(query, 0, temp, 0, i);
-                    System.arraycopy(query, i + 1, temp, i, query.length - i - 1);
-                    query = temp;
+                    List<Object> list = new ArrayList<>(Arrays.asList(query));
+                    list.remove(i);
+                    query = list.toArray();
                     continue; 
                 }
                 try {
                     Method method = this.matcher.match((String)query[i]);
 
                     String leftOver = ((String)query[i]).replaceFirst("(?i)" + method.getOriginal(), "");
-                    query[i] = method;
-                    if (!leftOver.isEmpty()) {
-                        // PHP: array_splice($query, $i + 1, 0, trim($leftOver));
-                        Object[] temp = new Object[query.length + 1];
-                        System.arraycopy(query, 0, temp, 0, i + 1);
-                        temp[i + 1] = leftOver.trim();
-                        System.arraycopy(query, i + 1, temp, i + 2, query.length - i - 1);
-                        query = temp;
+                    
+                    Object[] arr = new Object[query.length];
+                    for (int j = 0; j < query.length; j++) {
+                        if ( j == i) {
+                            arr[j] = method;
+                            continue;
+                        }
+                        arr[j] = query[j];
+                    }
+                    query = arr;
+                    
+                    
+                    if (!leftOver.trim().isEmpty()) {
+                        List<Object> temp = new ArrayList<>(Arrays.asList(query));
+                        temp.add(i + 1, leftOver.trim());
+                        query = temp.toArray();
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
+
                     String[] split = ((String)query[i]).split("[\\s]+", 2);
                     query[i] = split[0].trim();
                     if (split.length > 1) {
@@ -114,24 +126,16 @@ public class Interpreter extends TestMethodProvider{
             }
 
             if (!(method instanceof Method)) {
-                throw new SyntaxException("Unexpected statement: " + method.toString());
+                throw new SyntaxException("Unexpected statement: " + method.toString() + " type: " + method.getClass().getName() + ".");
             }
 
-            Object[] parameters = new Object[0];
-
-            // PHP: while (isset($query[$i + 1]) && !($query[$i + 1] instanceof Method))
-            while (i + 1 < query.length && !(query[i + 1] instanceof Method)) {
-                // PHP: $parameters[] = $query[$i + 1];
-                Object[] temp = new Object[parameters.length + 1];
-                System.arraycopy(parameters, 0, temp, 0, parameters.length);
-                temp[parameters.length] = query[i + 1];
-                parameters = temp;
-                // PHP: array_splice($query, $i + 1, 1);
-                Object[] temp2 = new Object[query.length - 1];
-                System.arraycopy(query, 0, temp2, 0, i + 1);
-                System.arraycopy(query, i + 2, temp2, i + 1, query.length - i - 2);
-                query = temp2;
+            Object[] parameters = new Object[query.length - i - 1];
+            int paramIndex = 0;
+            while (i + 1 < query.length && !(query[i+1] instanceof Method)) {
+                parameters[paramIndex++] = query[i+1];
+                i++;
             }
+            parameters = Arrays.copyOfRange(parameters, 0, paramIndex);
 
             try {
                 ((Method) method).setParameters(parameters).callMethodOn(builder);
@@ -147,6 +151,10 @@ public class Interpreter extends TestMethodProvider{
     @Override
     public String get(String delimiter, boolean ignoreInvalid) {
         return this.builder.get(delimiter, ignoreInvalid);
+    }
+
+    public String get() {
+        return this.builder.get("/", false);
     }
     
     public Builder getBuilder() {
