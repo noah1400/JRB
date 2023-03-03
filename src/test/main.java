@@ -10,12 +10,7 @@ public class Main {
         String query = JRB.builder()
         .startsWith()
         .anyOf(
-            (Builder builder) -> {
-                builder
-                    .digit()
-                    .letter()
-                    .oneOf("._%+-");
-            }
+            JRB.builder().digit().letter().oneOf("._%+-").get()
         ).onceOrMore()
         .literally("@")
         .anyOf(
@@ -30,6 +25,7 @@ public class Main {
         .letter().atLeast(2).mustEnd().caseInsensitive()
         .get();
         System.out.println(query);
+        System.out.println(JRB.builder().digit().letter().oneOf("._%+-").get());
     }
 
 }
