@@ -1,21 +1,28 @@
 package jrb.Language;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import jrb.Builder.Builder;
-import jrb.Builder.NonCapture;
 import jrb.Exceptions.InterpreterException;
 import jrb.Exceptions.SyntaxException;
 import jrb.Interfaces.TestMethodProvider;
+import jrb.Language.Commands.Command;
+import jrb.Language.Commands.Anchors.BeginWith;
+import jrb.Language.Commands.Anchors.MustEnd;
+import jrb.Language.Commands.Flags.AllLazy;
+import jrb.Language.Commands.Flags.CaseInsensitive;
+import jrb.Language.Commands.Flags.MultiLine;
+import jrb.Language.Commands.Quantifiers.AtLeast;
+import jrb.Language.Commands.Quantifiers.Between;
+import jrb.Language.Commands.Quantifiers.Exactly;
+import jrb.Language.Commands.Quantifiers.NeverOrMore;
+import jrb.Language.Commands.Quantifiers.OnceOrMore;
+import jrb.Language.Commands.Quantifiers.Optional;
 import jrb.Language.Helpers.Cache;
-import jrb.Language.Helpers.Literally;
-import jrb.Language.Helpers.Matcher;
-import jrb.Language.Helpers.Method;
-import jrb.Language.Helpers.ParenthesesParser;
+import jrb.Language.Helpers.Tokenizer.Token;
+import jrb.Language.Helpers.Tokenizer.Tokenizer;
 
-public class Interpreter extends TestMethodProvider{
+public class Interpreter extends TestMethodProvider {
 
     /*
      * The raw JRL query
@@ -25,9 +32,7 @@ public class Interpreter extends TestMethodProvider{
     /*
      * The resolved but not executed JRL query
      */
-    protected Object[] resolvedQuery;
-
-    protected Matcher matcher;
+    protected ArrayList<Token> tokenizedQuery;
 
     /*
      * The resolved and executed JRL query
@@ -37,7 +42,6 @@ public class Interpreter extends TestMethodProvider{
     public Interpreter(String query) throws SyntaxException, InterpreterException {
         // PHP: $this->rawQuery = rtrim(trim($query), ';');
         this.rawQuery = query.trim().replaceAll(";$", "");
-        this.matcher = Matcher.getInstance();
 
         // search for the JRL query in the local cache before building it.
         if (Cache.has(this.rawQuery)) {
@@ -50,103 +54,167 @@ public class Interpreter extends TestMethodProvider{
     public void build() throws SyntaxException, InterpreterException {
         this.resolve();
 
-        this.builder = Interpreter.buildQuery(this.resolvedQuery, null);
+        this.builder = Interpreter.buildQuery(tokenizedQuery, null);
 
         // add the JRL query to the local cache
         Cache.add(this.rawQuery, this.builder);
     }
 
-    protected void resolve() throws InterpreterException, SyntaxException {
-        this.resolvedQuery = this.resolveQuery((new ParenthesesParser(this.rawQuery)).parse());
+    protected void resolve() throws SyntaxException, InterpreterException {
+        this.tokenizedQuery = new Tokenizer(rawQuery).tokenize();
     }
 
-    protected Object[] resolveQuery(Object[] query) throws InterpreterException {
-        for (int i = 0; i < query.length; i++) {
-            if (query[i] instanceof String) {
-                query[i] = ((String)query[i]).replace(",", " ");
-                if (((String)query[i]).isEmpty()) {
-                    List<Object> list = new ArrayList<>(Arrays.asList(query));
-                    list.remove(i);
-                    query = list.toArray();
-                    continue; 
-                }
-                try {
-                    Method method = this.matcher.match((String)query[i]);
+    private static ArrayList<Command> resolveQuery(ArrayList<Token> tokens) throws InterpreterException, SyntaxException {
+        ArrayList<Command> commands = new ArrayList<Command>();
+        for (int i = 0; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
 
-                    String leftOver = ((String)query[i]).replaceFirst("(?i)" + method.getOriginal(), "");
+            // Anchors
+            if (token.matches("starts") || token.matches("begin"))  {
+                if (tokens.get(i + 1).matches("with")) {
                     
-                    Object[] arr = new Object[query.length];
-                    for (int j = 0; j < query.length; j++) {
-                        if ( j == i) {
-                            arr[j] = method;
-                            continue;
-                        }
-                        arr[j] = query[j];
-                    }
-                    query = arr;
-                    
-                    
-                    if (!leftOver.trim().isEmpty()) {
-                        List<Object> temp = new ArrayList<>(Arrays.asList(query));
-                        temp.add(i + 1, leftOver.trim());
-                        query = temp.toArray();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-
-                    String[] split = ((String)query[i]).split("[\\s]+", 2);
-                    query[i] = split[0].trim();
-                    if (split.length > 1) {
-                        Object[] temp = new Object[query.length + 1];
-                        System.arraycopy(query, 0, temp, 0, i + 1);
-                        temp[i + 1] = split[1].trim();
-                        System.arraycopy(query, i + 1, temp, i + 2, query.length - i - 1);
-                        query = temp;
-                    }
+                    i++; // skip the next token because it's already been used
+                    commands.add(new BeginWith());
+                    continue;
+                }else{
+                    throw new SyntaxException("Expected 'with' after 'starts' or 'begin' but got '"
+                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
                 }
-            } else if (query[i] instanceof Object[]) {
-                query[i] = this.resolveQuery((Object[])query[i]);
-            } else if (!(query[i] instanceof Literally)) {
-                // PHP: throw new InterpreterException('Unexpected statement: ' . json_encode($query[$i]));
-                throw new InterpreterException("Unexpected statement: " + query[i].toString());
+            } else if (token.matches("must")) {
+                if (tokens.get(i + 1).matches("end")) {
+                    commands.add(new MustEnd());
+                    i++; // skip the next token because it's already been used
+                    continue;
+                } else {
+                    throw new SyntaxException("Expected 'end' after 'must' but got '"
+                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                }
+            }
+
+            // Flags
+            else if (token.matches("case")) {
+                if (tokens.get(i + 1).matches("insensitive")) {
+                    Command cI = new CaseInsensitive();
+                    i++; // last token of the command
+                    i = addQuantifier(cI, i, tokens); // returns the last token of the quantifier
+                    commands.add(cI);
+                    continue;
+                } else {
+                    throw new SyntaxException("Expected 'insensitive' after 'case' but got '"
+                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                }
+            } else if (token.matches("multi")) {
+                if (tokens.get(i + 1).matches("line")) {
+                    Command mL = new MultiLine();
+                    i++; // last token of the command
+                    i = addQuantifier(mL, i, tokens); // returns the last token of the quantifier
+                    commands.add(mL);
+                    continue;
+                } else {
+                    throw new SyntaxException("Expected 'line' after 'multi' but got '"
+                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                }
+            } else if (token.matches("all")) {
+                if (tokens.get(i+1).matches("lazy")) {
+                    Command aL = new AllLazy();
+                    i++; // last token of the command
+                    i = addQuantifier(aL, i, tokens); // returns the last token of the quantifier
+                    commands.add(aL);
+                    continue;
+                } else {
+                    throw new SyntaxException("Expected 'lazy' after 'all' but got '"
+                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                }
+            }
+
+            // Characters
+
+        }
+    }
+
+    /*
+     * Add a quantifier to the last command in the commands array
+     * 
+     * @param command The command to add the quantifier to
+     * @param position The index of the last token of the command in the tokens
+     * 
+     * position+1 The index of the first token of the quantifier if it exists
+     * 
+     * @return The index of the last token of the quantifier if it exists
+     */
+    private static int addQuantifier(Command command, int position, ArrayList<Token> tokens) {
+        int i = position + 1; // would be first token of the quantifier
+
+        Token token = tokens.get(i);
+        if (token.matches("exactly")) {
+            if (tokens.get(i+1).matches(Token.T_NUMBER)
+            && (tokens.get(i+2).matches("times") || tokens.get(i+2).matches("time"))){
+                command.setQuantifier(new Exactly(Integer.parseInt(tokens.get(i+1).raw)));
+                // return
+                // the index of the last token of the quantifier (the "times" or "time" token)
+                return i+2;
+            }
+        } else if (token.matches("between")) {
+            Token x = tokens.get(i+1);
+            Token and = tokens.get(i+2);
+            Token y = tokens.get(i+3);
+            Token times = tokens.get(i+4);
+            if (x.matches(Token.T_NUMBER) && and.matches("and") && y.matches(Token.T_NUMBER)
+                    && times.matches("times")) {
+                command.setQuantifier(new Between(Integer.parseInt(x.raw), Integer.parseInt(y.raw)));
+                // return
+                // the index of the last token of the quantifier (the "times" token)
+                return i+4;
+            }
+        }  else if (token.matches("optional")) {
+            command.setQuantifier(new Optional());
+            // return
+            // the index of the last token of the quantifier (the "optional" token)
+            return i;
+        } else if (token.matches("once") || token.matches("never")) {
+            if (tokens.get(i+1).matches("or") && tokens.get(i + 2).matches("more")) {
+                if (token.matches("once")) {
+                    command.setQuantifier(new OnceOrMore());
+                    // return
+                    // the index of the last token of the quantifier (the "more" token)
+                    return i+2;
+                } else if (token.matches("never")) {
+                    command.setQuantifier(new NeverOrMore());
+                    // return
+                    // the index of the last token of the quantifier (the "more" token)
+                    return i+2;
+                }
+            }else if (token.matches("once")){
+                command.setQuantifier(new Exactly(1));
+                return i;
+            }
+        } else if (token.matches("at")) {
+            Token least = tokens.get(i+1);
+            Token x = tokens.get(i+2);
+            Token times = tokens.get(i+3);
+            if (least.matches("least") && x.matches(Token.T_NUMBER) && times.matches("times")) {
+                command.setQuantifier(new AtLeast(Integer.parseInt(x.raw)));
+                // return
+                // the index of the last token of the quantifier (the "times" token)
+                return i+3;
             }
         }
-        return query;
+        // if no quantifier was found, return the index of the last token of the command
+        return position;
     }
 
-    public static Builder buildQuery(Object[] query, Builder builder) throws SyntaxException {
+    public static Builder buildQuery(ArrayList<Token> tokens, Builder builder)
+            throws SyntaxException, InterpreterException {
+
+        ArrayList<Command> commands = Interpreter.resolveQuery(tokens);
         if (builder == null) {
             builder = new Builder();
         }
-        for (int i = 0; i < query.length; i++) {
-            Object method = query[i];
-            if (method instanceof Object[]) {
-                builder.and(buildQuery(query, new NonCapture()));
-                continue;
-            }
-
-            if (!(method instanceof Method)) {
-                throw new SyntaxException("Unexpected statement: " + method.toString() + " type: " + method.getClass().getName() + ".");
-            }
-
-            Object[] parameters = new Object[query.length - i - 1];
-            int paramIndex = 0;
-            while (i + 1 < query.length && !(query[i+1] instanceof Method)) {
-                parameters[paramIndex++] = query[i+1];
-                i++;
-            }
-            parameters = Arrays.copyOfRange(parameters, 0, paramIndex);
-
-            try {
-                ((Method) method).setParameters(parameters).callMethodOn(builder);
-            } catch (Exception e) {
-                throw new SyntaxException("Invalid parameter given for " + ((Method) method).getOriginal()+".");
-            }
+        for (Command command : commands) {
+            builder = command.callMethodOn(builder);
         }
         return builder;
     }
-
-
 
     @Override
     public String get(String delimiter, boolean ignoreInvalid) {
@@ -156,7 +224,7 @@ public class Interpreter extends TestMethodProvider{
     public String get() {
         return this.builder.get("/", false);
     }
-    
+
     public Builder getBuilder() {
         return this.builder;
     }

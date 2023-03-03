@@ -9,7 +9,7 @@ public class JRB {
 
     protected Interpreter language;
 
-    public JRB(String query) throws InterpreterException, SyntaxException {
+    public JRB(String query) throws SyntaxException, InterpreterException {
         this.language = new Interpreter(query);
     }
 
