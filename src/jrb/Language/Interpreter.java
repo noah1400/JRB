@@ -1,8 +1,10 @@
 package jrb.Language;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import jrb.Builder.Builder;
+import jrb.Builder.Capture;
 import jrb.Exceptions.InterpreterException;
 import jrb.Exceptions.SyntaxException;
 import jrb.Interfaces.TestMethodProvider;
@@ -24,6 +26,7 @@ import jrb.Language.Commands.Characters.Whitespace;
 import jrb.Language.Commands.Flags.AllLazy;
 import jrb.Language.Commands.Flags.CaseInsensitive;
 import jrb.Language.Commands.Flags.MultiLine;
+import jrb.Language.Commands.Groups.CaptureAs;
 import jrb.Language.Commands.Quantifiers.AtLeast;
 import jrb.Language.Commands.Quantifiers.Between;
 import jrb.Language.Commands.Quantifiers.Exactly;
@@ -66,7 +69,7 @@ public class Interpreter extends TestMethodProvider {
     public void build() throws SyntaxException, InterpreterException {
         this.resolve();
 
-        this.builder = Interpreter.buildQuery(tokenizedQuery, null);
+        this.builder = this.buildQuery(tokenizedQuery, null);
 
         // add the JRL query to the local cache
         Cache.add(this.rawQuery, this.builder);
@@ -76,108 +79,108 @@ public class Interpreter extends TestMethodProvider {
         this.tokenizedQuery = new Tokenizer(rawQuery).tokenize();
     }
 
-    private static ArrayList<Command> resolveQuery(ArrayList<Token> tokens)
+    private ArrayList<Command> resolveQuery(List<Token> list)
             throws InterpreterException, SyntaxException, IndexOutOfBoundsException {
         ArrayList<Command> commands = new ArrayList<Command>();
-        for (int i = 0; i < tokens.size(); i++) {
-            Token token = tokens.get(i);
+        for (int i = 0; i < list.size(); i++) {
+            Token token = list.get(i);
 
             // Anchors
             if (token.matches("starts") || token.matches("begin")) {
-                if (tokens.get(i + 1).matches("with")) {
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches("with")) {
 
                     i++; // skip the next token because it's already been used
                     commands.add(new BeginWith());
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'with' after 'starts' or 'begin' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("must")) {
-                if (tokens.get(i + 1).matches("end")) {
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches("end")) {
                     commands.add(new MustEnd());
                     i++; // skip the next token because it's already been used
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'end' after 'must' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             }
 
             // Flags
             else if (token.matches("case")) {
-                if (tokens.get(i + 1).matches("insensitive")) {
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches("insensitive")) {
                     CaseInsensitive cI = new CaseInsensitive();
                     i++; // last token of the command
-                    i = addQuantifier(cI, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(cI, i, list); // returns the last token of the quantifier
                     commands.add(cI);
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'insensitive' after 'case' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("multi")) {
-                if (tokens.get(i + 1).matches("line")) {
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches("line")) {
                     MultiLine mL = new MultiLine();
                     i++; // last token of the command
-                    i = addQuantifier(mL, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(mL, i, list); // returns the last token of the quantifier
                     commands.add(mL);
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'line' after 'multi' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("all")) {
-                if (tokens.get(i + 1).matches("lazy")) {
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches("lazy")) {
                     AllLazy aL = new AllLazy();
                     i++; // last token of the command
-                    i = addQuantifier(aL, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(aL, i, list); // returns the last token of the quantifier
                     commands.add(aL);
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'lazy' after 'all' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             }
 
             // Characters
             else if (token.matches("literally")) {
-                if (tokens.get(i + 1).matches(Token.T_STRING)) {
-                    Literally literally = new Literally(tokens.get(i + 1).raw);
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches(Token.T_STRING)) {
+                    Literally literally = new Literally(list.get(i + 1).raw);
                     i++; // last token of the command
-                    i = addQuantifier(literally, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(literally, i, list); // returns the last token of the quantifier
                     commands.add(literally);
                     continue;
                 } else {
                     throw new SyntaxException("Expected a string after 'literally' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("one")) {
-                if (tokens.get(i + 1).matches("of") && tokens.get(i + 2).matches(Token.T_STRING)) {
-                    OneOf oneOf = new OneOf(tokens.get(i + 2).raw);
+                if (this.inBounds(i+2, list) && list.get(i + 1).matches("of") && list.get(i + 2).matches(Token.T_STRING)) {
+                    OneOf oneOf = new OneOf(list.get(i + 2).raw);
                     i += 2; // last token of the command
-                    i = addQuantifier(oneOf, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(oneOf, i, list); // returns the last token of the quantifier
                     commands.add(oneOf);
                     continue;
                 } else {
                     throw new SyntaxException("Expected a string after 'one of' but got '"
-                            + tokens.get(i + 2).raw + "' at position " + tokens.get(i + 2).position);
+                            + list.get(i + 2).raw + "' at position " + list.get(i + 2).position);
                 }
             } else if (token.matches("uppercase")) {
-                if (tokens.get(i + 1).matches("letter")) {
+                if (this.inBounds(i+1, list) && list.get(i + 1).matches("letter")) {
                     // check for span
                     // from a to z
-                    Token from = tokens.get(i + 2);
-                    if (from.matches("from")) {
+                    if (this.inBoundsPeak(i+5, list)) {
                         // from a to z
-                        Token a = tokens.get(i + 3);
-                        Token to = tokens.get(i + 4);
-                        Token z = tokens.get(i + 5);
+                        Token from = list.get(i + 2);
+                        Token a = list.get(i + 3);
+                        Token to = list.get(i + 4);
+                        Token z = list.get(i + 5);
                         if (to.matches("to") && a.character() && z.character()) {
                             Letter letter = new Letter(true);
                             letter.setSpan(a.raw, z.raw);
                             i += 5; // last token of the command
-                            i = addQuantifier(letter, i, tokens); // returns the last token of the quantifier
+                            i = addQuantifier(letter, i, list); // returns the last token of the quantifier
                             commands.add(letter);
                             continue;
                         } else {
@@ -188,28 +191,28 @@ public class Interpreter extends TestMethodProvider {
                     } else {
                         Letter letter = new Letter(true);
                         i += 1; // last token of the command
-                        i = addQuantifier(letter, i, tokens); // returns the last token of the quantifier
+                        i = addQuantifier(letter, i, list); // returns the last token of the quantifier
                         commands.add(letter);
                     }
                 } else {
                     throw new SyntaxException("Expected 'letter' after 'uppercase' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("letter")) {
                 // check for span
                 // from a to z
-                Token from = tokens.get(i + 1);
+                Token from = list.get(i + 1);
                 if (from.matches("from")) {
-                    Token a = tokens.get(i + 2);
-                    Token to = tokens.get(i + 3);
-                    Token z = tokens.get(i + 4);
+                    Token a = list.get(i + 2);
+                    Token to = list.get(i + 3);
+                    Token z = list.get(i + 4);
 
                     if (to.matches("to") && a.character() && z.character()) {
 
                         Letter letter = new Letter(false);
                         letter.setSpan(a.raw, z.raw);
                         i += 4; // last token of the command
-                        i = addQuantifier(letter, i, tokens); // returns the last token of the quantifier
+                        i = addQuantifier(letter, i, list); // returns the last token of the quantifier
                         commands.add(letter);
                         continue;
                     } else {
@@ -218,16 +221,16 @@ public class Interpreter extends TestMethodProvider {
                     }
                 } else {
                     Letter letter = new Letter(false);
-                    i = addQuantifier(letter, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(letter, i, list); // returns the last token of the quantifier
                     commands.add(letter);
                     continue;
                 }
 
             } else if (token.matches("any")) {
-                if (tokens.get(i + 1).matches("character")) {
+                if (list.get(i + 1).matches("character")) {
                     AnyCharacter anyCharacter = new AnyCharacter();
                     i++; // last token of the command
-                    i = addQuantifier(anyCharacter, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(anyCharacter, i, list); // returns the last token of the quantifier
                     commands.add(anyCharacter);
                     continue;
                 } else {
@@ -235,33 +238,33 @@ public class Interpreter extends TestMethodProvider {
                     // Since token can still match Any Of (see below)
                 }
             } else if (token.matches("no")) {
-                if (tokens.get(i + 1).matches("character")) {
+                if (list.get(i + 1).matches("character")) {
                     NoCharacter noCharacter = new NoCharacter();
                     i++; // last token of the command
-                    i = addQuantifier(noCharacter, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(noCharacter, i, list); // returns the last token of the quantifier
                     commands.add(noCharacter);
                     continue;
-                } else if (tokens.get(i + 1).matches("whitespace")) {
+                } else if (list.get(i + 1).matches("whitespace")) {
                     Whitespace whitespace = new Whitespace(true);
                     i++; // last token of the command
-                    i = addQuantifier(whitespace, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(whitespace, i, list); // returns the last token of the quantifier
                     commands.add(whitespace);
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'character' or 'whitespace' after 'no' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("digit")) {
                 Digit digit = new Digit();
-                Token from = tokens.get(i + 1);
+                Token from = list.get(i + 1);
                 if (from.matches("from")) {
-                    Token a = tokens.get(i + 2);
-                    Token to = tokens.get(i + 3);
-                    Token z = tokens.get(i + 4);
+                    Token a = list.get(i + 2);
+                    Token to = list.get(i + 3);
+                    Token z = list.get(i + 4);
                     if (to.matches("to") && a.number() && z.number()) {
                         digit.setSpan(a.raw, z.raw);
                         i += 4; // last token of the command
-                        i = addQuantifier(digit, i, tokens); // returns the last token of the quantifier
+                        i = addQuantifier(digit, i, list); // returns the last token of the quantifier
                         commands.add(digit);
                         continue;
                     } else {
@@ -270,58 +273,126 @@ public class Interpreter extends TestMethodProvider {
                                 + a.position);
                     }
                 } else {
-                    i = addQuantifier(digit, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(digit, i, list); // returns the last token of the quantifier
                     commands.add(digit);
                     continue;
                 }
             } else if (token.matches("anything")) {
                 Anything anything = new Anything();
-                i = addQuantifier(anything, i, tokens); // returns the last token of the quantifier
+                i = addQuantifier(anything, i, list); // returns the last token of the quantifier
                 commands.add(anything);
                 continue;
             } else if (token.matches("new")) {
-                if (tokens.get(i + 1).matches("line")) {
+                if (list.get(i + 1).matches("line")) {
                     NewLine newLine = new NewLine();
                     i++; // last token of the command
-                    i = addQuantifier(newLine, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(newLine, i, list); // returns the last token of the quantifier
                     commands.add(newLine);
                     continue;
                 } else {
                     throw new SyntaxException("Expected 'line' after 'new' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
             } else if (token.matches("whitespace")) {
                 Whitespace whitespace = new Whitespace(false);
-                i = addQuantifier(whitespace, i, tokens); // returns the last token of the quantifier
+                i = addQuantifier(whitespace, i, list); // returns the last token of the quantifier
                 commands.add(whitespace);
                 continue;
             } else if (token.matches("tab")) {
                 Tab tab = new Tab();
-                i = addQuantifier(tab, i, tokens); // returns the last token of the quantifier
+                i = addQuantifier(tab, i, list); // returns the last token of the quantifier
                 commands.add(tab);
                 continue;
             } else if (token.matches("backslash")) {
                 Backslash backslash = new Backslash();
-                i = addQuantifier(backslash, i, tokens); // returns the last token of the quantifier
+                i = addQuantifier(backslash, i, list); // returns the last token of the quantifier
                 commands.add(backslash);
                 continue;
             } else if (token.matches("raw")) {
-                if (tokens.get(i + 1).matches(Token.T_STRING)) {
-                    Raw raw = new Raw(tokens.get(i + 1).raw);
+                if (list.get(i + 1).matches(Token.T_STRING)) {
+                    Raw raw = new Raw(list.get(i + 1).raw);
                     i++; // last token of the command
-                    i = addQuantifier(raw, i, tokens); // returns the last token of the quantifier
+                    i = addQuantifier(raw, i, list); // returns the last token of the quantifier
                     commands.add(raw);
                     continue;
                 } else {
                     throw new SyntaxException("Expected a string after 'raw' but got '"
-                            + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                            + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
                 }
-            } else {
+            } 
+            
+            // Groups:
+            else if (token.matches("capture")) {
+                this.inBounds(i+1, list); // another token needs to exist after capture
+                i++;
+                if (list.get(i).matches(Token.T_STRING)) {
+                    ArrayList<Command> gCommands = new ArrayList<>();
+                    gCommands.add(new Literally(list.get(i).raw));
+                    String name = "";
+                    if (this.inBoundsPeak(i+1, list) && list.get(i+1).matches("as")){
+                        this.inBounds(i+2, list); // another token needs to exist after as
+                        i++;
+                        i++;
+                        name = list.get(i).raw;
+                    }
+                    CaptureAs capture = null;
+                    if (name.isEmpty()){
+                        capture = new CaptureAs(gCommands);
+                    }else{
+                        capture = new CaptureAs(gCommands, name);
+                    }
+                    i = addQuantifier(capture, i, list); // returns the last token of the quantifier
+                    commands.add(capture);
+                } else if (list.get(i).matches(Token.T_LPAREN)){
+                    this.inBounds(i+1, list); // another token needs to exist after (
+                    int open = i;
+                    int close = this.findMatchingParenthesis(i, list);
+                    i = close;
+                    ArrayList<Command> gCommands = this.resolveQuery(list.subList(open+1, close));
+                    String name = "";
+                    if (this.inBoundsPeak(i+1, list) && list.get(i+1).matches("as")){
+                        this.inBounds(i+2, list); // another token needs to exist after as
+                        i++;
+                        i++;
+                        name = list.get(i).raw;
+                    }
+                    CaptureAs capture = null;
+                    if (name.isEmpty()){
+                        capture = new CaptureAs(gCommands);
+                    }else{
+                        capture = new CaptureAs(gCommands, name);
+                    }
+                    i = addQuantifier(capture, i, list); // returns the last token of the quantifier
+                    commands.add(capture);
+                } else {
+                    throw new SyntaxException("Expected a string or a group after 'capture' but got '"
+                            + list.get(i).raw + "' at position " + list.get(i).position);
+                }
+            }
+            
+            
+            else {
                 throw new SyntaxException("Unexpected token '" + token.raw + "' at position " + token.position);
             }
         }
 
         return commands;
+    }
+
+    private int findMatchingParenthesis(int i, List<Token> list) throws SyntaxException {
+        int open = 0;
+        int close = 0;
+        for (int j = i; j < list.size(); j++) {
+            if (list.get(j).matches(Token.T_LPAREN)) {
+                open++;
+            } else if (list.get(j).matches(Token.T_RPAREN)) {
+                close++;
+            }
+            if (open == close) {
+                return j;
+            }
+        }
+        throw new SyntaxException("No matching parenthesis found for '(' at position " + list.get(i).position);
     }
 
     /*
@@ -335,28 +406,29 @@ public class Interpreter extends TestMethodProvider {
      * 
      * @return The index of the last token of the quantifier if it exists
      */
-    private static int addQuantifier(Command command, int position, ArrayList<Token> tokens) throws SyntaxException {
+    private int addQuantifier(Command command, int position, List<Token> list) throws SyntaxException {
         int i = position + 1; // would be first token of the quantifier
 
-        if (i >= tokens.size()) {
+        if (!this.inBoundsPeak(i, list)){
             return position;
         }
 
-        Token token = tokens.get(i);
+        Token token = list.get(i);
         if (token.matches("exactly")) {
-            if (tokens.get(i + 1).matches(Token.T_NUMBER)
-                    && (tokens.get(i + 2).matches("times") || tokens.get(i + 2).matches("time"))) {
-                command.setQuantifier(new Exactly(Integer.parseInt(tokens.get(i + 1).raw)));
+            this.inBounds(i + 2, list);
+            if (list.get(i + 1).matches(Token.T_NUMBER)
+                    && (list.get(i + 2).matches("times") || list.get(i + 2).matches("time"))) {
+                command.setQuantifier(new Exactly(Integer.parseInt(list.get(i + 1).raw)));
                 // return
                 // the index of the last token of the quantifier (the "times" or "time" token)
                 return i + 2;
             }
         } else if (token.matches("between")) {
-
-            Token x = tokens.get(i + 1);
-            Token and = tokens.get(i + 2);
-            Token y = tokens.get(i + 3);
-            Token times = tokens.get(i + 4);
+            this.inBounds(i + 4, list);
+            Token x = list.get(i + 1);
+            Token and = list.get(i + 2);
+            Token y = list.get(i + 3);
+            Token times = list.get(i + 4);
             if (x.matches(Token.T_NUMBER) && and.matches("and") && y.matches(Token.T_NUMBER)
                     && times.matches("times")) {
                 command.setQuantifier(new Between(Integer.parseInt(x.raw), Integer.parseInt(y.raw)));
@@ -374,7 +446,7 @@ public class Interpreter extends TestMethodProvider {
             // the index of the last token of the quantifier (the "optional" token)
             return i;
         } else if (token.matches("once") || token.matches("never")) {
-            if (tokens.get(i + 1).matches("or") && tokens.get(i + 2).matches("more")) {
+            if (this.inBounds(i+2, list) && list.get(i + 1).matches("or") && list.get(i + 2).matches("more")) {
                 if (token.matches("once")) {
                     command.setQuantifier(new OnceOrMore());
                     // return
@@ -391,15 +463,18 @@ public class Interpreter extends TestMethodProvider {
                 return i;
             } else {
                 throw new SyntaxException("Expected 'or more' after 'never' but got '"
-                        + tokens.get(i + 1).raw + "' at position " + tokens.get(i + 1).position);
+                        + list.get(i + 1).raw + "' at position " + list.get(i + 1).position);
             }
         } else if (token.matches("twice")) {
             command.setQuantifier(new Exactly(2));
             return i;
         } else if (token.matches("at")) {
-            Token least = tokens.get(i + 1);
-            Token x = tokens.get(i + 2);
-            Token times = tokens.get(i + 3);
+            this.inBounds(i+1, list);
+            this.inBounds(i+2, list);
+            this.inBounds(i+3, list);
+            Token least = list.get(i + 1);
+            Token x = list.get(i + 2);
+            Token times = list.get(i + 3);
             if (least.matches("least") && x.matches(Token.T_NUMBER) && times.matches("times")) {
                 command.setQuantifier(new AtLeast(Integer.parseInt(x.raw)));
                 // return
@@ -415,10 +490,39 @@ public class Interpreter extends TestMethodProvider {
         return position;
     }
 
-    public static Builder buildQuery(ArrayList<Token> tokens, Builder builder)
+    /*
+     * Checks if the the index is in bounds of the tokens array
+     * 
+     */
+    private boolean inBounds(int i, List<Token> list) throws SyntaxException {
+        if (i >= 0 && i < list.size()) {
+            return true;
+        } else {
+            if (list.isEmpty()){
+                throw new SyntaxException("Invalid end of query");
+            }else{
+                throw new SyntaxException("Invalid end of query at position " + list.get(list.size() - 1).position);
+            }
+        }
+    }
+
+    /*
+     * Checks if the the index is in bounds of the tokens array
+     * Same as inBounds but doesn't throw an exception
+     * 
+     */
+    private boolean inBoundsPeak(int i, List<Token> list) {
+        if (i >= 0 && i < list.size()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public Builder buildQuery(ArrayList<Token> tokens, Builder builder)
             throws SyntaxException, InterpreterException {
 
-        ArrayList<Command> commands = Interpreter.resolveQuery(tokens);
+        ArrayList<Command> commands = this.resolveQuery(tokens);
         if (builder == null) {
             builder = new Builder();
         }

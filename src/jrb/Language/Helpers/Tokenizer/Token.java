@@ -14,6 +14,7 @@ public class Token {
     public Token(String raw, int type, int position) {
         this.raw = raw;
         this.type = type;
+        this.position = position;
     }
 
     public boolean matches(String raw) {
@@ -51,6 +52,6 @@ public class Token {
 
     @Override
     public String toString() {
-        return "Token [raw=" + raw + ", type=" + typeString(type) + "]";
+        return "Token [raw=" + raw + ", type=" + typeString(type) + " position=" + position + "]";
     }
 }
